@@ -16,10 +16,9 @@ using PaymentGatewayApp.Extensions;
 using Swashbuckle.AspNetCore.Swagger;
 using PaymentGatewayApp.Jobs.interfaces;
 using Hangfire;
-using Hangfire.MySql.src;
 using System;
-using Hangfire.MySql;
 using PaymentGatewayApp.Jobs;
+using Hangfire.MySql.Core;
 
 namespace PaymentGatewayApp
 {
@@ -39,17 +38,19 @@ namespace PaymentGatewayApp
             services.AddDbContext<AppDBContext>(opts => opts.UseMySQL(connString));
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            //var storage = JobStorage.Current;
+            
+            //GlobalConfiguration.Configuration.UseStorage(new MySqlStorage(connString));
 
-
-           
-            //services.AddHangfire(config=>
-            //{
-            //    var options = new MySqlStorageOptions
-            //    {
-            //        QueuePollInterval = TimeSpan.FromMinutes(5)
-            //    };
-            //    config.UseMySqlStorage(connString, options);
-            //});
+            //storage = JobStorage.Current;
+            services.AddHangfire(config =>
+            {
+                var options = new MySqlStorageOptions
+                {
+                    QueuePollInterval = TimeSpan.FromMinutes(5)
+                };
+                config.UseStorage(new MySqlStorage(connString,options));
+            });
 
 
             services.AddScoped<IDataRepository<PaymentOption>, PaymentOptionDataRepository>();
@@ -87,12 +88,14 @@ namespace PaymentGatewayApp
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
 
-            //app.UseHangfireDashboard("/hangfire");
+            app.UseHangfireDashboard("/api/hangfire",new DashboardOptions {
+                AppPath ="/"
+            });
 
-            //app.UseHangfireServer(new BackgroundJobServerOptions
-            //{
-            //    WorkerCount = 1
-            //});
+            app.UseHangfireServer(new BackgroundJobServerOptions
+            {
+                WorkerCount = 1
+            });
 
             if (env.IsDevelopment())
             {
